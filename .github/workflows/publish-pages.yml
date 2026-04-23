@@ -50,6 +50,63 @@ jobs:
       - name: Download IG Publisher
         run: mkdir -p input-cache && curl -L https://github.com/HL7/fhir-ig-publisher/releases/latest/download/publisher.jar -o input-cache/publisher.jar
 
+      - name: Prepare release metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const tag = process.env.RELEASE_TAG || '';
+          const version = tag.replace(/^v/, '');
+
+          if (!version) {
+            throw new Error(`Could not derive version from tag: ${tag}`);
+          }
+
+          const today = new Date().toISOString().slice(0, 10);
+
+          const sushiConfigPath = 'sushi-config.yaml';
+          let sushiConfig = fs.readFileSync(sushiConfigPath, 'utf8');
+          sushiConfig = sushiConfig.replace(/^version:\s*.*$/m, `version: ${version}`);
+          sushiConfig = sushiConfig.replace(/^releaseLabel:\s*.*$/m, 'releaseLabel: Release');
+          fs.writeFileSync(sushiConfigPath, sushiConfig, 'utf8');
+
+          const packageListPath = 'package-list.json';
+          const packageList = JSON.parse(fs.readFileSync(packageListPath, 'utf8'));
+          let releaseEntry = packageList.list.find((entry) => entry.version === version);
+
+          if (!releaseEntry) {
+            releaseEntry = {
+              version,
+              date: today,
+              desc: `Release ${version}`,
+              path: packageList.canonical,
+              status: 'release',
+              sequence: 'Release',
+              fhirversion: '4.0.1',
+              current: true
+            };
+
+            const currentIndex = packageList.list.findIndex((entry) => entry.version === 'current');
+            if (currentIndex >= 0) {
+              packageList.list.splice(currentIndex + 1, 0, releaseEntry);
+            } else {
+              packageList.list.push(releaseEntry);
+            }
+          } else {
+            releaseEntry.date = today;
+            releaseEntry.desc = releaseEntry.desc || `Release ${version}`;
+            releaseEntry.path = releaseEntry.path || packageList.canonical;
+            releaseEntry.status = 'release';
+            releaseEntry.sequence = releaseEntry.sequence || 'Release';
+            releaseEntry.fhirversion = releaseEntry.fhirversion || '4.0.1';
+            releaseEntry.current = true;
+          }
+
+          fs.writeFileSync(packageListPath, JSON.stringify(packageList, null, 2) + '\n', 'utf8');
+          NODE
+
       - name: Build implementation guide
         run: chmod +x _genonce.sh && ./_genonce.sh
 
