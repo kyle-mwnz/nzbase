@@ -1,75 +1,53 @@
 #!/usr/bin/env node
 
-/** fix the IG text
- * 
- * Copy the output folder into publish
- * then run this script
- * 
- * 
- */
-let fs = require('fs');
+const fs = require("node:fs/promises");
+const path = require("node:path");
 
-let srchString = 'HL7® FHIR® New Zealand Base Implementation Guide - Local Development build (v3.0.0). See the <a href="http://fhir.org.nz/ig/base/history.html">Directory of published versions</a>'
-                  //HL7® FHIR® New Zealand Base Implementation Guide - Local Development build (v1.0.0). See the <a href="http://hl7.org.nz/fhir/ig/base/history.html">Directory of published versions</a>
+const targetDir = path.resolve(process.argv[2] || "output");
+const replacementText = "HL7® FHIR® New Zealand Base Implementation Guide, published by HL7 New Zealand";
+const localBuildBannerPattern = /HL7® FHIR® New Zealand Base Implementation Guide\s*-\s*Local Development build \(v[^)]+\)\.\s*See the <a href="[^"]*history\.html">Directory of published versions<\/a>/g;
+const qaReportPattern = />QA Report</g;
 
-let replString = 'HL7® FHIR® New Zealand Base Implementation Guide, published by HL7 New Zealand'
-let fullFolderPath = "./publish"
-let outFolder = './publish/'
+async function main() {
+  const htmlFiles = await collectHtmlFiles(targetDir);
+  let updatedFiles = 0;
 
+  for (const filePath of htmlFiles) {
+    const original = await fs.readFile(filePath, "utf8");
+    const updated = original
+      .replace(localBuildBannerPattern, replacementText)
+      .replace(qaReportPattern, ">");
 
-
-let arFiles = fs.readdirSync(fullFolderPath);
-//console.log(arFiles)
-arFiles.forEach(function(name){
-
-    let fullFileName = fullFolderPath + "/"+ name;
-    let outFileName = outFolder + name;
-
-    if (! isDir(fullFileName)) {
-        console.log(fullFileName)
-        if (fullFileName.indexOf('.html') > -1) {
-            //this is an html file - we can do the checks...
-            let contents = fs.readFileSync(fullFileName,'utf8').toString();
-
-            contents = contents.replace("QA Report","")
-            g = contents.indexOf(srchString)
-            if (g > -1) {
-                contents = contents.replace(srchString,replString)
-        
-                //let g1 = newFile.indexOf(replString)
-                //fs.writeFileSync(outFileName,newFile,{encoding:"utf8"})
-        
-                console.log('fixed ' )
-            } 
-    
-    
-           fs.writeFileSync(outFileName,contents,{encoding:"utf8"})
-        } else {
-            //anything else is just a read/write
-           // fs.createReadStream(fullFileName).pipe(fs.createWriteStream(outFileName));
-
-           // let contents = fs.readFileSync(fullFileName)    //a buffer
-           // fs.writeFileSync(outFileName)
-        }
-
-
-
-        
-
+    if (updated !== original) {
+      await fs.writeFile(filePath, updated, "utf8");
+      updatedFiles += 1;
     }
-    
-   
+  }
 
-
-})
-
-
-function isDir(path) {
-    try {
-        var stat = fs.lstatSync(path);
-        return stat.isDirectory();
-    } catch (e) {
-        // lstatSync throws an error if path doesn't exist
-        return false;
-    }
+  console.log(`fixIG: processed ${htmlFiles.length} HTML files in ${targetDir}; updated ${updatedFiles}.`);
 }
+
+async function collectHtmlFiles(dirPath) {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  const htmlFiles = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(dirPath, entry.name);
+
+    if (entry.isDirectory()) {
+      htmlFiles.push(...await collectHtmlFiles(entryPath));
+      continue;
+    }
+
+    if (entry.isFile() && entry.name.endsWith(".html")) {
+      htmlFiles.push(entryPath);
+    }
+  }
+
+  return htmlFiles;
+}
+
+main().catch((error) => {
+  console.error(`fixIG: ${error.message}`);
+  process.exitCode = 1;
+});

@@ -65,6 +65,9 @@ Release builds are published to GitHub Pages when a Git tag matching `v*` is pus
 2. Open `Settings` -> `Pages`.
 3. Set `Source` to `GitHub Actions`.
 4. Save the change.
+5. Open `Settings` -> `Environments` -> `github-pages`.
+6. Under deployment protection rules, allow the tags you want to release from.
+7. If `Deployment branches and tags` is enabled, either set it to `No restriction` or add a rule that allows tags matching `v*`.
 
 The workflow is defined in `.github/workflows/publish-pages.yml` and builds the IG using `./_genonce.sh`, then publishes the generated static site from `output/`.
 
@@ -88,4 +91,5 @@ git push origin v3.1.0
 
 - The workflow publishes the generated website in `output/`, not `full-ig.zip`.
 - The first release will only deploy after GitHub Pages has been configured to use `GitHub Actions`.
+- If a tag deployment is rejected with `is not allowed to deploy to github-pages due to environment protection rules`, update the `github-pages` environment to allow tag deployments.
 - The canonical and published URLs in `sushi-config.yaml` and `package-list.json` currently point to non-GitHub hosting. If GitHub Pages will become the authoritative published site, those URLs should be updated to match the final public address.

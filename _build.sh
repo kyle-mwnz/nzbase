@@ -73,6 +73,9 @@ function build_ig() {
       args+=("-tx" "n/a")
     fi
     java -Dfile.encoding=UTF-8 -jar "$jar_location" -ig . "${args[@]}" "$@"
+    if [ -d "output" ]; then
+      node ./fixIG.js output
+    fi
   else
     echo "publisher.jar not found. Please run update."
   fi
@@ -82,6 +85,9 @@ function build_ig() {
 function build_nosushi() {
   if [ "$jar_location" != "not_found" ]; then
     java -Dfile.encoding=UTF-8 -jar "$jar_location" -ig . -no-sushi "$@"
+    if [ -d "output" ]; then
+      node ./fixIG.js output
+    fi
   else
     echo "publisher.jar not found. Please run update."
   fi
@@ -90,6 +96,9 @@ function build_nosushi() {
 function build_notx() {
   if [ "$jar_location" != "not_found" ]; then
     java -Dfile.encoding=UTF-8 -jar "$jar_location" -ig . -tx n/a "$@"
+    if [ -d "output" ]; then
+      node ./fixIG.js output
+    fi
   else
     echo "publisher.jar not found. Please run update."
   fi
@@ -98,6 +107,9 @@ function build_notx() {
 function jekyll_build() {
   echo "Running Jekyll build..."
   jekyll build -s temp/pages -d output
+  if [ -d "output" ]; then
+    node ./fixIG.js output
+  fi
 }
 
 function cleanup() {

@@ -53,6 +53,9 @@ jobs:
       - name: Build implementation guide
         run: chmod +x _genonce.sh && ./_genonce.sh
 
+      - name: Remove local build banner
+        run: node ./fixIG.js output
+
       - name: Verify generated site
         run: test -f output/index.html
 
