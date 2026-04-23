@@ -54,3 +54,38 @@ Open the menu-driven helper (additional build options):
 ```bash
 ./_build.sh
 ```
+
+## Release Process
+
+Release builds are published to GitHub Pages when a Git tag matching `v*` is pushed to the repository.
+
+### One-time GitHub configuration
+
+1. Go to the repository on GitHub.
+2. Open `Settings` -> `Pages`.
+3. Set `Source` to `GitHub Actions`.
+4. Save the change.
+
+The workflow is defined in `.github/workflows/publish-pages.yml` and builds the IG using `./_genonce.sh`, then publishes the generated static site from `output/`.
+
+### Create a release
+
+1. Make sure the release content is committed to `master`.
+2. Update any version metadata you want to publish, such as `sushi-config.yaml` and `package-list.json`.
+3. Create a release tag that starts with `v`.
+
+```bash
+git checkout master
+git pull
+git tag v3.1.0
+git push origin v3.1.0
+```
+
+4. Open the `Actions` tab on GitHub and confirm the `Publish IG to GitHub Pages` workflow succeeds.
+5. Open the deployed Pages URL and confirm the IG loads correctly.
+
+### Notes
+
+- The workflow publishes the generated website in `output/`, not `full-ig.zip`.
+- The first release will only deploy after GitHub Pages has been configured to use `GitHub Actions`.
+- The canonical and published URLs in `sushi-config.yaml` and `package-list.json` currently point to non-GitHub hosting. If GitHub Pages will become the authoritative published site, those URLs should be updated to match the final public address.
